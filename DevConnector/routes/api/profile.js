@@ -247,4 +247,42 @@ router.put(
   }
 );
 
+// @route  Delete api/profile/:userId/experience/:experienceId
+// @desc   delete a block of experience based on the id
+// @access private
+router.delete("/:userId/experience/:experienceId", auth, async (req, res) => {
+  try {
+    let profile = await Profile.findOne({ user: req.params.userId });
+
+    if (!profile)
+      return res
+        .status(400)
+        .json({ msg: "Invalid request: no profile exists" });
+
+    if (!profile.experience.length)
+      return res
+        .status(400)
+        .json({ msg: "Invalid request: no profile experience exists" });
+
+    let experienceArrayIndex = profile.experience
+      .map(item => item.id)
+      .indexOf(req.params.experienceId);
+    console.log(experienceArrayIndex);
+
+    //remove the experience entry using .splice()
+    if (experienceArrayIndex === -1)
+      return res.status(400).json({
+        msg: "Invalid request: that profile experience does not exist"
+      });
+    profile.experience.splice(experienceArrayIndex, 1);
+
+    await profile.save();
+
+    res.status(200).json(profile);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send("Server error");
+  }
+});
+
 module.exports = router;
