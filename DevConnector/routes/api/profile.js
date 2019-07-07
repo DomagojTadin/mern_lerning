@@ -111,4 +111,140 @@ router.post(
   }
 );
 
+// @route  GET api/profiles
+// @desc   fetch all user profile metadata
+// @access public
+router.get("/profiles", async (req, res) => {
+  try {
+    const profiles = await Profile.find().populate("user", ["name", "avatar"]);
+    res.json(profiles);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send("Server error");
+  }
+});
+
+// @route  GET api/profile/:userId
+// @desc   fetch a user profile by userId
+// @access public
+router.get("/:userId", async (req, res) => {
+  try {
+    const profile = await Profile.findOne({ user: req.params.userId }).populate(
+      "user",
+      ["name", "avatar"]
+    );
+
+    if (!profile) return res.status(400).json("Profile not found");
+
+    return res.json(profile);
+  } catch (err) {
+    console.error(err.message);
+    if (err.kind == "ObjectId") {
+      return res.status(400).json("Profile not found");
+    }
+    res.status(500).send("Server error");
+  }
+});
+
+// @route  Delete api/profile/:userId
+// @desc   delete a user, profile and posts
+// @access private
+router.delete("/:userId", auth, async (req, res) => {
+  try {
+    //@todo: add code to delete all posts based on userId
+
+    //this block deletes the profile (if the posts are deleted successfully)
+    await Profile.findOneAndRemove({ user: req.params.userId });
+
+    //does the AWAIT keywork make the next two steps unnecessary?
+    let profile = await Profile.findOne({ user: req.params.userId });
+    if (profile)
+      return res
+        .status(400)
+        .json({ msg: "Delete unsuccessful: profile cannot be deleted" });
+
+    //if the posts and profile deletion was successful, go ahead and delete the user
+    await User.findOneAndRemove({ _id: req.params.userId });
+    let user = await User.findOne({ _id: req.params.userId });
+    if (user)
+      return res
+        .status(400)
+        .json({ msg: "Delete unsuccessful: user cannot be deleted" });
+
+    //return success message if all deletes are successful
+    res.status(200).json({ msg: "User successfully deleted" });
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send("Server error");
+  }
+});
+
+// @route  PUT api/profile/:userId/experience
+// @desc   add experience to a specific user's profile
+// @access private
+router.put(
+  "/:userId/experience",
+  [
+    auth,
+    [
+      check("title", "Title is required")
+        .not()
+        .isEmpty(),
+      check("company", "Company is required")
+        .not()
+        .isEmpty(),
+      check("from", "Start Date is required")
+        .not()
+        .isEmpty(),
+      check("from", "Start Date is required")
+        .not()
+        .isISO8601(),
+      check("current", "Current is required")
+        .not()
+        .isEmpty()
+    ]
+  ],
+  async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+
+    const {
+      title,
+      company,
+      location,
+      from,
+      to,
+      current,
+      description
+    } = req.body;
+
+    //Build experience array
+    const experienceFields = {};
+    experienceFields.company = company;
+    experienceFields.title = title;
+    experienceFields.from = from;
+    experienceFields.current = current;
+    if (location) experienceFields.location = location;
+    if (to) experienceFields.to = to;
+    if (description) experienceFields.description = description;
+
+    try {
+      let profile = await Profile.findOne({ user: req.params.userId });
+      if (profile) {
+        //update database entry
+        profile.experience.unshift(experienceFields);
+
+        await profile.save();
+
+        return res.json(profile);
+      }
+    } catch (err) {
+      console.error(err.message);
+      res.status(500).send("Server error");
+    }
+  }
+);
+
 module.exports = router;
