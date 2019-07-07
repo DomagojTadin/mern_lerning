@@ -265,7 +265,10 @@ router.delete("/:userId/experience/:experienceId", auth, async (req, res) => {
         .json({ msg: "Invalid request: no profile experience exists" });
 
     let experienceArrayIndex = profile.experience
+      // the map function creates a new array of all of the OBJECTIDS from the experience array
       .map(item => item.id)
+      // the index of function finds the index of the new array
+      // Question: could this be dangerous doing it this way since documentes in mongo are json collections?
       .indexOf(req.params.experienceId);
     console.log(experienceArrayIndex);
 
