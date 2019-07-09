@@ -288,4 +288,72 @@ router.delete("/:userId/experience/:experienceId", auth, async (req, res) => {
   }
 });
 
+// @route  PUT api/profile/:userId/education
+// @desc   add education to a specific user's profile
+// @access private
+router.put(
+  "/:userId/education",
+  [
+    auth,
+    [
+      check("school", "Title is required")
+        .not()
+        .isEmpty(),
+      check("degree", "Company is required")
+        .not()
+        .isEmpty(),
+      check("fieldofstudy", "Start Date is required")
+        .not()
+        .isEmpty(),
+      check("from", "Start Date is required")
+        .not()
+        .isISO8601(),
+      check("current", "Current is required")
+        .not()
+        .isEmpty()
+    ]
+  ],
+  async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+
+    const {
+      school,
+      degree,
+      fieldofstudy,
+      from,
+      to,
+      current,
+      description
+    } = req.body;
+
+    //Build experience array
+    const experienceFields = {};
+    experienceFields.company = company;
+    experienceFields.title = title;
+    experienceFields.from = from;
+    experienceFields.current = current;
+    if (location) experienceFields.location = location;
+    if (to) experienceFields.to = to;
+    if (description) experienceFields.description = description;
+
+    try {
+      let profile = await Profile.findOne({ user: req.params.userId });
+      if (profile) {
+        //update database entry
+        profile.experience.unshift(experienceFields);
+
+        await profile.save();
+
+        return res.json(profile);
+      }
+    } catch (err) {
+      console.error(err.message);
+      res.status(500).send("Server error");
+    }
+  }
+);
+
 module.exports = router;
