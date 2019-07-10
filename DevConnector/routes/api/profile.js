@@ -2,6 +2,8 @@ const express = require("express");
 const router = express.Router();
 const auth = require("../../middleware/tokenVerification");
 const { check, validationResult } = require("express-validator/check");
+const request = require("request");
+const config = require("config");
 
 const Profile = require("../../models/Profile");
 const User = require("../../models/User");
@@ -296,13 +298,13 @@ router.put(
   [
     auth,
     [
-      check("school", "Title is required")
+      check("school", "School is required")
         .not()
         .isEmpty(),
-      check("degree", "Company is required")
+      check("degree", "Degree is required")
         .not()
         .isEmpty(),
-      check("fieldofstudy", "Start Date is required")
+      check("fieldofstudy", "Field of study is required")
         .not()
         .isEmpty(),
       check("from", "Start Date is required")
@@ -330,20 +332,20 @@ router.put(
     } = req.body;
 
     //Build experience array
-    const experienceFields = {};
-    experienceFields.company = company;
-    experienceFields.title = title;
-    experienceFields.from = from;
-    experienceFields.current = current;
-    if (location) experienceFields.location = location;
-    if (to) experienceFields.to = to;
-    if (description) experienceFields.description = description;
+    const educationFields = {};
+    educationFields.school = school;
+    educationFields.degree = degree;
+    educationFields.fieldofstudy = fieldofstudy;
+    educationFields.from = from;
+    educationFields.current = current;
+    if (to) educationFields.to = to;
+    if (description) educationFields.description = description;
 
     try {
       let profile = await Profile.findOne({ user: req.params.userId });
       if (profile) {
         //update database entry
-        profile.experience.unshift(experienceFields);
+        profile.education.unshift(educationFields);
 
         await profile.save();
 
@@ -355,5 +357,77 @@ router.put(
     }
   }
 );
+
+// @route  Delete api/profile/:userId/education/:educationId
+// @desc   delete a block of education based on the id
+// @access private
+router.delete("/:userId/education/:educationId", auth, async (req, res) => {
+  try {
+    let profile = await Profile.findOne({ user: req.params.userId });
+
+    if (!profile)
+      return res
+        .status(400)
+        .json({ msg: "Invalid request: no profile exists" });
+
+    if (!profile.education.length)
+      return res
+        .status(400)
+        .json({ msg: "Invalid request: no profile experience exists" });
+
+    let educationArrayIndex = profile.education
+      // the map function creates a new array of all of the OBJECTIDS from the experience array
+      .map(item => item.id)
+      // the index of function finds the index of the new array
+      // Question: could this be dangerous doing it this way since documentes in mongo are json collections?
+      .indexOf(req.params.educationId);
+    console.log(educationArrayIndex);
+
+    //remove the experience entry using .splice()
+    if (educationArrayIndex === -1)
+      return res.status(400).json({
+        msg: "Invalid request: that profile education does not exist"
+      });
+    profile.education.splice(educationArrayIndex, 1);
+
+    await profile.save();
+
+    res.status(200).json(profile);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send("Server error");
+  }
+});
+
+// @route  GET api/profile/:userId/github/:username
+// @desc   Get user's github repositories
+// @access public
+router.get("/:userId/github/:username", async (req, res) => {
+  try {
+    const options = {
+      uri: `https://api.github.com/users/${
+        req.params.username
+      }/repos?per_page=5&sort=created:asc&client_id=${config.get(
+        "githubClientId"
+      )}&client_secret=${config.get("githubSecret")}`,
+      method: "GET",
+      headers: { "user-agent": "node.js" }
+    };
+
+    request(options, async (error, response, body) => {
+      if (error) {
+        console.error(error);
+      }
+      if (response.statusCode !== 200) {
+        return res.status(404).json({ msg: "No github profile found" });
+      }
+
+      res.json(JSON.parse(body));
+    });
+  } catch (err) {
+    console.log(err.message);
+    res.status(500).send("Server Error");
+  }
+});
 
 module.exports = router;

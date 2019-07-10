@@ -1,4 +1,6 @@
 {
   "mongoURI": "mongodb+srv://domagojtadin:domagoj1@tadincluster-splsc.mongodb.net/devcollector_db?retryWrites=true&w=majority",
-  "jwtSecret": "devconnectorSecretToken"
+  "jwtSecret": "devconnectorSecretToken",
+  "githubClientId": "ab393998d7c760957e93",
+  "githubSecret": "4c740d8a071ed3e54af9accba62ed4cfc4e05365"
 }
