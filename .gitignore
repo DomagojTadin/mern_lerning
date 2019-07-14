@@ -1,3 +1,4 @@
 /DevConnector/node_modules/
+/DevConnector/client/node_modules/
 /MERN_SHOPPING_LIST/node_modules/
 .DS_Store
