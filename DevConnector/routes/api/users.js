@@ -45,7 +45,7 @@ router.post(
     }
 
     // 6. set the name email password as constants from req.body
-    //    not sure about how this syntax works... it just does it automagically
+    //    not sure about how this syntax works... it just does it automagically - found out, it's called destructuring
     const { name, email, password } = req.body;
 
     // 7. Set up try-catch.  this is required for the async keyword

@@ -39,7 +39,7 @@ const Login = () => {
             // this onChange property is set by calling the onChange method above
             // and the HTML element e is extracted and passed to onChange
             onChange={e => onChange(e)}
-            required
+            //required
           />
         </div>
         <div className="form-group">
@@ -47,10 +47,10 @@ const Login = () => {
             type="password"
             placeholder="Password"
             name="password"
-            minLength="6"
+            //minLength="6"
             value={password}
             onChange={e => onChange(e)}
-            required
+            //required
           />
         </div>
         <input type="submit" className="btn btn-primary" value="Login" />
